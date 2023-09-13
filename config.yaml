@@ -1,0 +1,7 @@
+images_dir: /home/sashank/data/blade-load-segmentation/d5-2
+outputs_dir: /home/sashank/data/blade-load-segmentation/outputs
+model:
+  n_channels: 3
+  n_classes: 2
+  bilinear: False
+  path: /home/sashank/data/blade-load-segmentation/000-001/checkpoints/checkpoint_epoch100.pth
