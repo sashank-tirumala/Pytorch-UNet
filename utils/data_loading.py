@@ -1,14 +1,14 @@
 import logging
-import numpy as np
-import torch
-from PIL import Image
-from functools import lru_cache
-from functools import partial
+from functools import lru_cache, partial
 from itertools import repeat
 from multiprocessing import Pool
 from os import listdir
-from os.path import splitext, isfile, join
+from os.path import isfile, join, splitext
 from pathlib import Path
+
+import numpy as np
+import torch
+from PIL import Image
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
@@ -24,7 +24,7 @@ def load_image(filename):
 
 
 def unique_mask_values(idx, mask_dir, mask_suffix):
-    mask_file = list(mask_dir.glob(idx + mask_suffix + '.*'))[0]
+    mask_file = list(mask_dir.glob("mask_"+idx + '.*'))[0]
     mask = np.asarray(load_image(mask_file))
     if mask.ndim == 2:
         return np.unique(mask)
@@ -54,7 +54,6 @@ class BasicDataset(Dataset):
                 p.imap(partial(unique_mask_values, mask_dir=self.mask_dir, mask_suffix=self.mask_suffix), self.ids),
                 total=len(self.ids)
             ))
-
         self.mask_values = list(sorted(np.unique(np.concatenate(unique), axis=0).tolist()))
         logging.info(f'Unique mask values: {self.mask_values}')
 
@@ -92,7 +91,7 @@ class BasicDataset(Dataset):
 
     def __getitem__(self, idx):
         name = self.ids[idx]
-        mask_file = list(self.mask_dir.glob(name + self.mask_suffix + '.*'))
+        mask_file = list(self.mask_dir.glob("mask_" + name  + '.*'))
         img_file = list(self.images_dir.glob(name + '.*'))
 
         assert len(img_file) == 1, f'Either no image or multiple images found for the ID {name}: {img_file}'
