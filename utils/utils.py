@@ -28,3 +28,19 @@ def plot_img_and_maskv2(img, mask, returns_img=False):
         return img
     plt.imshow(img)
     plt.show()
+
+def plot_img_and_maskv3(img, mask, returns_img=False, max_mask_count = 96324, min_mask_count = 42428):
+    """
+    Overlay mask on image with light and dark colours using cv2
+    """
+    mask = mask.astype(np.uint8)
+    img = np.array(img)
+    mask_count = np.sum(mask == 0)
+    mask_percentage = (mask_count - min_mask_count )*100 / (max_mask_count - min_mask_count)
+    #Write mask percent top left into image
+    cv2.putText(img, f"Blade Load Percent: {100 - int(mask_percentage)}%", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    if returns_img:
+        return img
+    else:
+        plt.imshow(img)
+        plt.show()

@@ -56,6 +56,7 @@ if __name__=="__main__":
                             scale_factor=0.5,
                             out_threshold=0.5,
                             device=device)
+        breakpoint()
         img = plot_img_and_mask(img, mask, returns_img=True)
         i+=1
         writer.write(img)
