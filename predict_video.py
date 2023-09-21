@@ -41,7 +41,7 @@ if __name__=="__main__":
     state_dict.pop('mask_values', [0, 1])
     net.load_state_dict(state_dict)
     logging.info('Model loaded!')
-    image_files = [x.name for x in Path(conf.images_dir).glob('*.jpg')]
+    image_files = [x.name for x in Path(conf.images_dir).glob('*left.jpg')]
     image_files.sort(key=image_sort_key)
     # create cv2 mp4 writer
     output_dir = Path(conf.outputs_dir)
@@ -56,7 +56,6 @@ if __name__=="__main__":
                             scale_factor=0.5,
                             out_threshold=0.5,
                             device=device)
-        breakpoint()
         img = plot_img_and_mask(img, mask, returns_img=True)
         i+=1
         writer.write(img)

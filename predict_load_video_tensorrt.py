@@ -9,7 +9,7 @@ import tqdm
 from PIL import Image
 
 from tensorrt_model import UnetTensorrt
-from utils.utils import plot_img_and_maskv3 as plot_img_and_mask
+from utils.utils import plot_img_and_maskv2 as plot_img_and_mask
 
 
 def image_sort_key(image_name: str) -> int:
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         "-if", "--input-folder", help="folder containing images", type=Path, default="/home/sashank/data/blade-load-segmentation/d5-2"
     )
     parser.add_argument(
-        "-of", "--output-folder", help="folder to save images", type=Path, default="/home/sashank/data/blade-load-segmentation/d5-2-predictions"
+        "-of", "--output-folder", help="folder to save images", type=Path, default="/home/sashank/data/blade-load-segmentation/d5-predictions"
     )
     args = parser.parse_args()
     model = UnetTensorrt(args.tensorrt_engine_path)

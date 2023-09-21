@@ -22,6 +22,7 @@ def plot_img_and_maskv2(img, mask, returns_img=False):
     mask = np.dstack((mask, mask, mask)) * np.array([[0, 255, 0]])
     mask = mask.astype(np.uint8)
     img = np.array(img)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     weighted_sum = cv2.addWeighted(mask, 0.25, img, 0.75, 0.)
     img = np.concatenate((img, weighted_sum), axis=1)
     if returns_img:

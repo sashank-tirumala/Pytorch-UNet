@@ -10,19 +10,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
-import wandb
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
+import wandb
 from evaluate import evaluate
 from unet import UNet
 from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 
-dir_img = Path('/home/sashank/data/blade-load-segmentation/000-001/rgb')
-dir_mask = Path('/home/sashank/data/blade-load-segmentation/000-001/masks_proc')
-dir_checkpoint = Path('/home/sashank/data/blade-load-segmentation/000-001/checkpoints/')
+dir_img = Path('/home/sashank/data/blade-load-segmentation/d5-luyuan/rgb')
+dir_mask = Path('/home/sashank/data/blade-load-segmentation/d5-luyuan/masks_proc')
+dir_checkpoint = Path('/home/sashank/data/blade-load-segmentation/d5-luyuan/checkpoints/')
 
 
 def train_model(
