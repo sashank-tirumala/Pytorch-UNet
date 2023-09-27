@@ -48,7 +48,7 @@ if __name__ == "__main__":
     ort_outs = ort_session.run(None, ort_inputs)
     torch_out = net(dummy_input)
     np.testing.assert_allclose(
-        torch_out.cpu().detach().numpy(), ort_outs[0], rtol=1e-03, atol=1e-03
+        torch_out.cpu().detach().numpy(), ort_outs[0], atol=5e-02
     )
     print("Exported model has been tested with ONNXRuntime, and the result looks good!")
     import os

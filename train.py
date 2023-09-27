@@ -10,22 +10,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
-import wandb
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
+import wandb
 from evaluate import evaluate
 from unet import UNet
 from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 
-train_img = Path("/home/sashank/data/work/datasets/002/train/rgb")
-train_mask = Path("/home/sashank/data/work/datasets/002/train/masks")
+train_img = Path("/home/sashank/data/work/datasets/003/train/rgb")
+train_mask = Path("/home/sashank/data/work/datasets/003/train/masks_proc")
 train_checkpoint = Path("/home/sashank/data/work/models/runs")
 
-val_img = Path("/home/sashank/data/work/datasets/002/valid/rgb")
-val_mask = Path("/home/sashank/data/work/datasets/002/valid/masks")
+val_img = Path("/home/sashank/data/work/datasets/003/valid/rgb")
+val_mask = Path("/home/sashank/data/work/datasets/003/valid/masks")
 
 
 def train_model(

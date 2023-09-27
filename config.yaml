@@ -4,5 +4,5 @@ model:
   n_channels: 3
   n_classes: 2
   bilinear: False
-  path: /home/sashank/data/blade-load-segmentation/d5-luyuan/checkpoints/checkpoint_epoch100.pth
+  path: /workspace/data/work/models/runs/earthy-vortex-9/checkpoint_epoch3.pth
   input_size: 256
