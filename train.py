@@ -21,7 +21,7 @@ from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 
 train_img = Path("/home/sashank/data/work/datasets/003/train/rgb")
-train_mask = Path("/home/sashank/data/work/datasets/003/train/masks_proc")
+train_mask = Path("/home/sashank/data/work/datasets/003/train/masks")
 train_checkpoint = Path("/home/sashank/data/work/models/runs")
 
 val_img = Path("/home/sashank/data/work/datasets/003/valid/rgb")

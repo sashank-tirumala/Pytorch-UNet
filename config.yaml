@@ -4,5 +4,5 @@ model:
   n_channels: 3
   n_classes: 2
   bilinear: False
-  path: /workspace/data/work/models/runs/earthy-vortex-9/checkpoint_epoch3.pth
+  path: /workspace/data/work/models/runs/splendid-water-21/checkpoint_epoch50.pth
   input_size: 256
