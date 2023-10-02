@@ -47,13 +47,11 @@ if __name__ == "__main__":
     ort_inputs = {ort_session.get_inputs()[0].name: dummy_input.cpu().detach().numpy()}
     ort_outs = ort_session.run(None, ort_inputs)
     torch_out = net(dummy_input)
-    np.testing.assert_allclose(
-        torch_out.cpu().detach().numpy(), ort_outs[0], atol=5e-02
-    )
+    np.testing.assert_allclose(torch_out.cpu().detach().numpy(), ort_outs[0], atol=5e-02)
     print("Exported model has been tested with ONNXRuntime, and the result looks good!")
     import os
 
     # Convert to TensorRT
     os.system(
-        f"trtexec --onnx={Path(conf.model.path).with_suffix('.onnx')} --saveEngine={Path(conf.model.path).with_suffix('.trt')}"
+        f"trtexec --onnx={Path(conf.model.path).with_suffix('.onnx')} --saveEngine={Path(conf.model.path).with_suffix('.trt')} --fp16"
     )
