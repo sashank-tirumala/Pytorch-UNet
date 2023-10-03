@@ -41,24 +41,13 @@ def train_model(
     weight_decay: float = 1e-8,
     momentum: float = 0.999,
     gradient_clipping: float = 1.0,
+    fixed_scale: int = None,
+    augmentation: str = None
 ):
-    # 1. Create dataset
-    # try:
-    #     dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
-    # except (AssertionError, RuntimeError, IndexError):
-    #     dataset = BasicDataset(dir_img, dir_mask, img_scale)
-
-    # # 2. Split into train / validation partitions
-    # n_val = int(len(dataset) * val_percent)
-    # n_train = len(dataset) - n_val
-    train_set = BasicDataset(train_img, train_mask, img_scale)
-    val_set = BasicDataset(val_img, val_mask, img_scale)
-    # train_set, val_set = random_split(
-    #     dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0)
-    # )
+    train_set = BasicDataset(train_img, train_mask, img_scale, fixed_scale=fixed_scale, augmentation=augmentation)
+    val_set = BasicDataset(val_img, val_mask, img_scale, fixed_scale=fixed_scale, augmentation=augmentation)
     n_train = len(train_set)
     n_val = len(val_set)
-    # 3. Create data loaders
     loader_args = dict(
         batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True
     )
@@ -88,7 +77,7 @@ def train_model(
         Validation size: {n_val}
         Checkpoints:     {save_checkpoint}
         Device:          {device.type}
-        Images scaling:  {img_scale}
+        Images shape:  {train_set[0]["image"].shape}
         Mixed Precision: {amp}
     """
     )
@@ -256,6 +245,12 @@ def get_args():
         help="Downscaling factor of the images",
     )
     parser.add_argument(
+        "--fixed-scale",
+        "-fs",
+        type=int,
+        default=None,
+    )
+    parser.add_argument(
         "--validation",
         "-v",
         dest="val",
@@ -271,6 +266,9 @@ def get_args():
     )
     parser.add_argument(
         "--classes", "-c", type=int, default=2, help="Number of classes"
+    )
+    parser.add_argument(
+            "--augmentation", "-aug", type=str, default = None, help="type of augmentations to add"
     )
 
     return parser.parse_args()
@@ -313,6 +311,8 @@ if __name__ == "__main__":
             img_scale=args.scale,
             val_percent=args.val / 100,
             amp=args.amp,
+            fixed_scale=args.fixed_scale,
+            augmentation = args.augmentation
         )
     except torch.cuda.OutOfMemoryError:
         logging.error(

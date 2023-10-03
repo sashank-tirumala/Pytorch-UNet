@@ -6,6 +6,7 @@ from os import listdir
 from os.path import isfile, join, splitext
 from pathlib import Path
 
+import albumentations as A
 import numpy as np
 import torch
 from PIL import Image
@@ -44,10 +45,20 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
 
 class BasicDataset(Dataset):
     def __init__(
-        self, images_dir: str, mask_dir: str, scale: float = 1.0, mask_suffix: str = ""
+        self,
+        images_dir: str,
+        mask_dir: str,
+        scale: float = 1.0,
+        mask_suffix: str = "",
+        fixed_scale: int = None,
+        augmentation: str = None,
     ):
         self.images_dir = Path(images_dir)
         self.mask_dir = Path(mask_dir)
+        if not (self.images_dir.is_dir() and self.mask_dir.is_dir()):
+            raise RuntimeError(
+                f"Invalid dataset directories: {images_dir} or {mask_dir} are not valid directories"
+            )
         assert 0 < scale <= 1, "Scale must be between 0 and 1"
         self.scale = scale
         self.mask_suffix = mask_suffix
@@ -82,14 +93,50 @@ class BasicDataset(Dataset):
             sorted(np.unique(np.concatenate(unique), axis=0).tolist())
         )
         logging.info(f"Unique mask values: {self.mask_values}")
+        self.fixed_scale = fixed_scale
+        self.augmentation = augmentation
+        self.v1_transform = A.Compose(
+            [
+                A.RandomBrightnessContrast(
+                    brightness_limit=0.25, contrast_limit=0.4, p=0.5
+                ),
+                A.RandomSnow(
+                    brightness_coeff=2.5,
+                    snow_point_lower=0.3,
+                    snow_point_upper=0.5,
+                    p=0.5,
+                ),
+            ]
+        )
+        self.v2_transform = A.Compose(
+            [
+                A.RandomBrightnessContrast(
+                    brightness_limit=0.25, contrast_limit=0.4, p=0.5
+                ),
+                A.RandomSnow(
+                    brightness_coeff=2.5,
+                    snow_point_lower=0.3,
+                    snow_point_upper=0.5,
+                    p=0.5,
+                ),
+                A.RandomFog(fog_coef_lower=0.3, fog_coef_upper=0.5, p=0.5),
+                A.RandomSunFlare(flare_roi=(0, 0, 1, 0.5), angle_lower=0.5, p=0.5),
+                A.RandomRain(
+                    brightness_coefficient=0.9, drop_width=1, blur_value=5, p=1
+                ),
+            ]
+        )
 
     def __len__(self):
         return len(self.ids)
 
     @staticmethod
-    def preprocess(mask_values, pil_img, scale, is_mask):
+    def preprocess(mask_values, pil_img, scale, is_mask, fixed_scale):
         w, h = pil_img.size
-        newW, newH = int(scale * w), int(scale * h)
+        if fixed_scale is None:
+            newW, newH = int(scale * w), int(scale * h)
+        else:
+            newW, newH = int(fixed_scale), int(fixed_scale)
         assert (
             newW > 0 and newH > 0
         ), "Scale is too small, resized images would have no pixel"
@@ -108,16 +155,7 @@ class BasicDataset(Dataset):
 
             return mask
 
-        else:
-            if img.ndim == 2:
-                img = img[np.newaxis, ...]
-            else:
-                img = img.transpose((2, 0, 1))
-
-            if (img > 1).any():
-                img = img / 255.0
-
-            return img
+        return img
 
     def __getitem__(self, idx):
         name = self.ids[idx]
@@ -137,8 +175,37 @@ class BasicDataset(Dataset):
             img.size == mask.size
         ), f"Image and mask {name} should be the same size, but are {img.size} and {mask.size}"
 
-        img = self.preprocess(self.mask_values, img, self.scale, is_mask=False)
-        mask = self.preprocess(self.mask_values, mask, self.scale, is_mask=True)
+        img = self.preprocess(
+            self.mask_values,
+            img,
+            self.scale,
+            is_mask=False,
+            fixed_scale=self.fixed_scale,
+        )
+        mask = self.preprocess(
+            self.mask_values,
+            mask,
+            self.scale,
+            is_mask=True,
+            fixed_scale=self.fixed_scale,
+        )
+
+        if self.augmentation == "v1":
+            transformed = self.v1_transform(image=img, mask=mask)
+            img = transformed["image"]
+            mask = transformed["mask"]
+
+        if self.augmentation == "v2":
+            transformed = self.v2_transform(image=img, mask=mask)
+            img = transformed["image"]
+            mask = transformed["mask"]
+
+        if img.ndim == 2:
+            img = img[np.newaxis, ...]
+        else:
+            img = img.transpose((2, 0, 1))
+        if img.max() > 1:
+            img = img / 255.0
 
         return {
             "image": torch.as_tensor(img.copy()).float().contiguous(),
