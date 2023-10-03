@@ -10,11 +10,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
+import wandb
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
-import wandb
 from evaluate import evaluate
 from unet import UNet
 from utils.data_loading import BasicDataset, CarvanaDataset
@@ -42,15 +42,13 @@ def train_model(
     momentum: float = 0.999,
     gradient_clipping: float = 1.0,
     fixed_scale: int = None,
-    augmentation: str = None
+    augmentation: str = None,
 ):
     train_set = BasicDataset(train_img, train_mask, img_scale, fixed_scale=fixed_scale, augmentation=augmentation)
     val_set = BasicDataset(val_img, val_mask, img_scale, fixed_scale=fixed_scale, augmentation=augmentation)
     n_train = len(train_set)
     n_val = len(val_set)
-    loader_args = dict(
-        batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True
-    )
+    loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
@@ -90,9 +88,7 @@ def train_model(
         momentum=momentum,
         foreach=True,
     )
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, "max", patience=5
-    )  # goal: maximize Dice score
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=5)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
@@ -120,9 +116,7 @@ def train_model(
                 )
                 true_masks = true_masks.to(device=device, dtype=torch.long)
 
-                with torch.autocast(
-                    device.type if device.type != "mps" else "cpu", enabled=amp
-                ):
+                with torch.autocast(device.type if device.type != "mps" else "cpu", enabled=amp):
                     masks_pred = model(images)
                     if model.n_classes == 1:
                         loss = criterion(masks_pred.squeeze(1), true_masks.float())
@@ -135,9 +129,7 @@ def train_model(
                         loss = criterion(masks_pred, true_masks)
                         loss += dice_loss(
                             F.softmax(masks_pred, dim=1).float(),
-                            F.one_hot(true_masks, model.n_classes)
-                            .permute(0, 3, 1, 2)
-                            .float(),
+                            F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True,
                         )
 
@@ -150,9 +142,7 @@ def train_model(
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
-                experiment.log(
-                    {"train loss": loss.item(), "step": global_step, "epoch": epoch}
-                )
+                experiment.log({"train loss": loss.item(), "step": global_step, "epoch": epoch})
                 pbar.set_postfix(**{"loss (batch)": loss.item()})
 
                 # Evaluation round
@@ -163,18 +153,12 @@ def train_model(
                         for tag, value in model.named_parameters():
                             tag = tag.replace("/", ".")
                             if not (torch.isinf(value) | torch.isnan(value)).any():
-                                histograms["Weights/" + tag] = wandb.Histogram(
-                                    value.data.cpu()
-                                )
-                            if not (
-                                torch.isinf(value.grad) | torch.isnan(value.grad)
-                            ).any():
-                                histograms["Gradients/" + tag] = wandb.Histogram(
-                                    value.grad.data.cpu()
-                                )
+                                histograms["Weights/" + tag] = wandb.Histogram(value.data.cpu())
+                            if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
+                                histograms["Gradients/" + tag] = wandb.Histogram(value.grad.data.cpu())
 
                         val_score = evaluate(model, val_loader, device, amp)
-                        scheduler.step(val_score)
+                        # scheduler.step(val_score)
 
                         logging.info("Validation Dice score: {}".format(val_score))
                         try:
@@ -184,12 +168,8 @@ def train_model(
                                     "validation Dice": val_score,
                                     "images": wandb.Image(images[0].cpu()),
                                     "masks": {
-                                        "true": wandb.Image(
-                                            true_masks[0].float().cpu()
-                                        ),
-                                        "pred": wandb.Image(
-                                            masks_pred.argmax(dim=1)[0].float().cpu()
-                                        ),
+                                        "true": wandb.Image(true_masks[0].float().cpu()),
+                                        "pred": wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
                                     },
                                     "step": global_step,
                                     "epoch": epoch,
@@ -203,19 +183,13 @@ def train_model(
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
             state_dict = model.state_dict()
             state_dict["mask_values"] = train_set.mask_values
-            torch.save(
-                state_dict, str(dir_checkpoint / "checkpoint_epoch{}.pth".format(epoch))
-            )
+            torch.save(state_dict, str(dir_checkpoint / "checkpoint_epoch{}.pth".format(epoch)))
             logging.info(f"Checkpoint {epoch} saved!")
 
 
 def get_args():
-    parser = argparse.ArgumentParser(
-        description="Train the UNet on images and target masks"
-    )
-    parser.add_argument(
-        "--epochs", "-e", metavar="E", type=int, default=5, help="Number of epochs"
-    )
+    parser = argparse.ArgumentParser(description="Train the UNet on images and target masks")
+    parser.add_argument("--epochs", "-e", metavar="E", type=int, default=5, help="Number of epochs")
     parser.add_argument(
         "--batch-size",
         "-b",
@@ -234,9 +208,7 @@ def get_args():
         help="Learning rate",
         dest="lr",
     )
-    parser.add_argument(
-        "--load", "-f", type=str, default=False, help="Load model from a .pth file"
-    )
+    parser.add_argument("--load", "-f", type=str, default=False, help="Load model from a .pth file")
     parser.add_argument(
         "--scale",
         "-s",
@@ -258,18 +230,10 @@ def get_args():
         default=10.0,
         help="Percent of the data that is used as validation (0-100)",
     )
-    parser.add_argument(
-        "--amp", action="store_true", default=False, help="Use mixed precision"
-    )
-    parser.add_argument(
-        "--bilinear", action="store_true", default=False, help="Use bilinear upsampling"
-    )
-    parser.add_argument(
-        "--classes", "-c", type=int, default=2, help="Number of classes"
-    )
-    parser.add_argument(
-            "--augmentation", "-aug", type=str, default = None, help="type of augmentations to add"
-    )
+    parser.add_argument("--amp", action="store_true", default=False, help="Use mixed precision")
+    parser.add_argument("--bilinear", action="store_true", default=False, help="Use bilinear upsampling")
+    parser.add_argument("--classes", "-c", type=int, default=2, help="Number of classes")
+    parser.add_argument("--augmentation", "-aug", type=str, default=None, help="type of augmentations to add")
 
     return parser.parse_args()
 
@@ -312,7 +276,7 @@ if __name__ == "__main__":
             val_percent=args.val / 100,
             amp=args.amp,
             fixed_scale=args.fixed_scale,
-            augmentation = args.augmentation
+            augmentation=args.augmentation,
         )
     except torch.cuda.OutOfMemoryError:
         logging.error(
