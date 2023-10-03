@@ -28,9 +28,7 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
     try:
         mask_file = list(mask_dir.glob("mask_" + idx + ".*"))[0]
     except IndexError:
-        raise FileNotFoundError(
-            f"Mask file not found for ID {idx} in {mask_dir} with suffix {mask_suffix}"
-        )
+        raise FileNotFoundError(f"Mask file not found for ID {idx} in {mask_dir} with suffix {mask_suffix}")
     mask = np.asarray(load_image(mask_file))
     if mask.ndim == 2:
         return np.unique(mask)
@@ -38,9 +36,7 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
         mask = mask.reshape(-1, mask.shape[-1])
         return np.unique(mask, axis=0)
     else:
-        raise ValueError(
-            f"Loaded masks should have 2 or 3 dimensions, found {mask.ndim}"
-        )
+        raise ValueError(f"Loaded masks should have 2 or 3 dimensions, found {mask.ndim}")
 
 
 class BasicDataset(Dataset):
@@ -56,9 +52,7 @@ class BasicDataset(Dataset):
         self.images_dir = Path(images_dir)
         self.mask_dir = Path(mask_dir)
         if not (self.images_dir.is_dir() and self.mask_dir.is_dir()):
-            raise RuntimeError(
-                f"Invalid dataset directories: {images_dir} or {mask_dir} are not valid directories"
-            )
+            raise RuntimeError(f"Invalid dataset directories: {images_dir} or {mask_dir} are not valid directories")
         assert 0 < scale <= 1, "Scale must be between 0 and 1"
         self.scale = scale
         self.mask_suffix = mask_suffix
@@ -69,9 +63,7 @@ class BasicDataset(Dataset):
             if isfile(join(images_dir, file)) and not file.startswith(".")
         ]
         if not self.ids:
-            raise RuntimeError(
-                f"No input file found in {images_dir}, make sure you put your images there"
-            )
+            raise RuntimeError(f"No input file found in {images_dir}, make sure you put your images there")
 
         logging.info(f"Creating dataset with {len(self.ids)} examples")
         logging.info("Scanning mask files to determine unique values")
@@ -89,17 +81,13 @@ class BasicDataset(Dataset):
                     total=len(self.ids),
                 )
             )
-        self.mask_values = list(
-            sorted(np.unique(np.concatenate(unique), axis=0).tolist())
-        )
+        self.mask_values = list(sorted(np.unique(np.concatenate(unique), axis=0).tolist()))
         logging.info(f"Unique mask values: {self.mask_values}")
         self.fixed_scale = fixed_scale
         self.augmentation = augmentation
         self.v1_transform = A.Compose(
             [
-                A.RandomBrightnessContrast(
-                    brightness_limit=0.25, contrast_limit=0.4, p=0.5
-                ),
+                A.RandomBrightnessContrast(brightness_limit=0.25, contrast_limit=0.4, p=0.5),
                 A.RandomSnow(
                     brightness_coeff=2.5,
                     snow_point_lower=0.3,
@@ -110,9 +98,7 @@ class BasicDataset(Dataset):
         )
         self.v2_transform = A.Compose(
             [
-                A.RandomBrightnessContrast(
-                    brightness_limit=0.25, contrast_limit=0.4, p=0.5
-                ),
+                A.RandomBrightnessContrast(brightness_limit=0.25, contrast_limit=0.4, p=0.5),
                 A.RandomSnow(
                     brightness_coeff=2.5,
                     snow_point_lower=0.3,
@@ -121,9 +107,7 @@ class BasicDataset(Dataset):
                 ),
                 A.RandomFog(fog_coef_lower=0.3, fog_coef_upper=0.5, p=0.5),
                 A.RandomSunFlare(flare_roi=(0, 0, 1, 0.5), angle_lower=0.5, p=0.5),
-                A.RandomRain(
-                    brightness_coefficient=0.9, drop_width=1, blur_value=5, p=1
-                ),
+                A.RandomRain(brightness_coefficient=0.9, drop_width=1, blur_value=5, p=0.5),
             ]
         )
 
@@ -137,12 +121,8 @@ class BasicDataset(Dataset):
             newW, newH = int(scale * w), int(scale * h)
         else:
             newW, newH = int(fixed_scale), int(fixed_scale)
-        assert (
-            newW > 0 and newH > 0
-        ), "Scale is too small, resized images would have no pixel"
-        pil_img = pil_img.resize(
-            (newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC
-        )
+        assert newW > 0 and newH > 0, "Scale is too small, resized images would have no pixel"
+        pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC)
         img = np.asarray(pil_img)
 
         if is_mask:
@@ -162,12 +142,8 @@ class BasicDataset(Dataset):
         mask_file = list(self.mask_dir.glob("mask_" + name + ".*"))
         img_file = list(self.images_dir.glob(name + ".*"))
 
-        assert (
-            len(img_file) == 1
-        ), f"Either no image or multiple images found for the ID {name}: {img_file}"
-        assert (
-            len(mask_file) == 1
-        ), f"Either no mask or multiple masks found for the ID {name}: {mask_file}"
+        assert len(img_file) == 1, f"Either no image or multiple images found for the ID {name}: {img_file}"
+        assert len(mask_file) == 1, f"Either no mask or multiple masks found for the ID {name}: {mask_file}"
         mask = load_image(mask_file[0])
         img = load_image(img_file[0])
 
