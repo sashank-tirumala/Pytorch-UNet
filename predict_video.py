@@ -73,15 +73,15 @@ if __name__ == "__main__":
     output_dir.mkdir(exist_ok=True)
     output_pth = output_dir / (Path(args.input_folder).name + ".mp4")
     writer = cv2.VideoWriter(
-        str(output_pth), cv2.VideoWriter_fourcc(*"mp4v"), 10, (2560, 720)
+        str(output_pth), cv2.VideoWriter_fourcc(*"mp4v"), 10, (1024, 512)
     )
     i = 0
     for image_file in tqdm.tqdm(image_files):
         img = Image.open(Path(args.input_folder) / image_file)
-        mask = predict_img(
+        mask, inp_img = predict_img(
             net=net, full_img=img, scale_factor=0.5, out_threshold=0.5, device=device
         )
-        img = plot_img_and_mask(img, mask, returns_img=True)
+        img = plot_img_and_mask(inp_img, mask, returns_img=True)
         i += 1
         writer.write(img)
     writer.release()
