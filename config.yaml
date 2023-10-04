@@ -4,5 +4,5 @@ model:
   n_channels: 3
   n_classes: 2
   bilinear: False
-  path: /workspace/Downloads/models_to_convert/checkpoint_epoch38_fancy_dream_22.pth
+  path: /workspace/data/work/models/runs/models_to_convert/checkpoint_epoch38_fancy_dream_22.pth 
   input_size: 256

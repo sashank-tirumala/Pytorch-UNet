@@ -3,6 +3,7 @@ import logging
 import os
 
 import albumentations as A
+import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ from torchvision import transforms
 
 from unet import UNet
 from utils.data_loading import BasicDataset
+from utils.dice_score import dice_coeff, dice_loss, multiclass_dice_coeff
 from utils.utils import plot_img_and_maskv2 as plot_img_and_mask
 
 
@@ -23,17 +25,82 @@ def predict_img(
     )
 
     # transform = A.Compose([A.functional.add_snow()])
-    img = A.functional.add_snow(img, snow_point=0.1, brightness_coeff=2.5)
+    # img = A.functional.add_snow(img, snow_point=0.1, brightness_coeff=2.5)
+    # img = A.functional.add_fog(img, fog_coef=0.4, alpha_coef=0.08, haze_list=())
+    # height, width = img.shape[:2]
+    # area = height * width
+    # num_drops = area // 770
+    # slant = 6
+    # rain_drops = []
+    # drop_length = 30
+
+    # for _i in range(num_drops):  # If You want heavy rain, try increasing this
+    #     if slant < 0:
+    #         x = np.random.randint(slant, width)
+    #     else:
+    #         x = np.random.randint(0, width - slant)
+
+    #     y = np.random.randint(0, height - drop_length)
+
+    #     rain_drops.append((x, y))
     # img = A.functional.add_rain(
     #     img,
-    #     slant=-6,
-    #     drop_length=20,
+    #     slant=slant,
+    #     drop_length=drop_length,
     #     drop_width=1,
     #     drop_color=(200, 200, 200),
     #     blur_value=5,
-    #     brightness_coefficient=0.9,
-    #     rain_drops=(),
+    #     brightness_coefficient=0.6,
+    #     rain_drops=rain_drops,
     # )
+    # RANDOMSUNFLARE
+    # height, width = img.shape[:2]
+    # flare_center_x = int(0.7 * width)
+    # flare_center_y = int(0.2 * height)
+    # angle = 0.7
+    # num_circles = 8
+    # circles = []
+
+    # x = []
+    # y = []
+
+    # def line(t):
+    #     return (
+    #         flare_center_x + t * np.math.cos(angle),
+    #         flare_center_y + t * np.math.sin(angle),
+    #     )
+
+    # for t_val in range(-flare_center_x, width - flare_center_x, 10):
+    #     rand_x, rand_y = line(t_val)
+    #     x.append(rand_x)
+    #     y.append(rand_y)
+
+    # for _i in range(num_circles):
+    #     alpha = np.random.uniform(0.05, 0.2)
+    #     r = np.random.randint(0, len(x) - 1)
+    #     rad = np.random.randint(1, max(height // 100 - 2, 2))
+
+    #     r_color = np.random.randint(max(255 - 50, 0), 255)
+    #     g_color = np.random.randint(max(255 - 50, 0), 255)
+    #     b_color = np.random.randint(max(255 - 50, 0), 255)
+
+    #     circles += [
+    #         (
+    #             alpha,
+    #             (int(x[r]), int(y[r])),
+    #             pow(rad, 3),
+    #             (r_color, g_color, b_color),
+    #         )
+    #     ]
+    # img = A.functional.add_sun_flare(
+    #     img,
+    #     flare_center_x,
+    #     flare_center_y,
+    #     400,
+    #     (255, 255, 255),
+    #     circles,
+    # )
+    img = A.functional.adjust_brightness_torchvision(img, 1.5)
     # img = transform(image=img)["image"]
     inp_img = img.copy()
     if img.ndim == 2:
@@ -55,8 +122,11 @@ def predict_img(
             mask = output.argmax(dim=1)
         else:
             mask = torch.sigmoid(output) > out_threshold
+    mask = mask[0].long().squeeze().numpy()
+    mask = mask[:, :].astype(np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((71, 71), np.uint8))
 
-    return mask[0].long().squeeze().numpy(), inp_img
+    return mask, inp_img
 
 
 def get_args():
