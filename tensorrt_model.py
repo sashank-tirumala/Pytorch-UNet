@@ -116,22 +116,23 @@ class TrtModel:
         self.cuda_ctx.pop()
         return self.outputs
 
-class UnetTensorrt():
+
+class UnetTensorrt:
     def __init__(self, trt_model_path, batch_size=1, input_shape=(3, 360, 640), output_shape=(2, 360, 640)):
         self.trt_model = TrtModel(trt_model_path, max_batch_size=batch_size)
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.batch_size = batch_size
-    
+
     def __call__(self, x):
         x = self.preprocess(x)
         outputs = self.trt_model(x)
         outputs = outputs[0].host.reshape(self.batch_size, *self.output_shape)
         outputs = outputs.argmax(axis=1)
         return outputs
-    
+
     def preprocess(self, pil_img):
-        w, h, c= pil_img.shape
+        w, h, c = pil_img.shape
         newW, newH = self.input_shape[1], self.input_shape[2]
         img = cv2.resize(pil_img, (newH, newW), interpolation=cv2.INTER_CUBIC)
 
@@ -144,17 +145,27 @@ class UnetTensorrt():
             img = img / 255.0
 
         return img
-    
+
+
 if __name__ == "__main__":
-    model_path = Path("/home/sashank/data/blade-load-segmentation/000-001/checkpoints/checkpoint_epoch100.trt")
-    model = UnetTensorrt(model_path)
-    img = Image.open("/home/sashank/data/blade-load-segmentation/000-001/rgb/1693960649942_left.jpg")
-    img = np.asarray(img)
-    mask = model(img)
-    img = model.preprocess(img)
-    img = img.transpose((1, 2, 0))
-    img = img * 255
-    img = img.astype(np.uint8)
-    plot_img_and_mask(img, mask[0, :, :], returns_img=False)
-    print(np.sum(mask == 0))
-    model.trt_model.cuda_ctx.pop()
+    model_path = Path("/home/sashank/Downloads/dino_fp32.trt")
+    # model = UnetTensorrt(model_path)
+    # img = Image.open("/home/sashank/data/blade-load-segmentation/000-001/rgb/1693960649942_left.jpg")
+    # img = np.asarray(img)
+    # mask = model(img)
+    # img = model.preprocess(img)
+    # img = img.transpose((1, 2, 0))
+    # img = img * 255
+    # img = img.astype(np.uint8)
+    # plot_img_and_mask(img, mask[0, :, :], returns_img=False)
+    # print(np.sum(mask == 0))
+    # model.trt_model.cuda_ctx.pop()
+    model = TrtModel(model_path)
+    dummy_input = np.random.randn(1, 3, 280, 280).astype(np.float32)
+    import time
+
+    start = time.time()
+    for i in range(100):
+        outputs = model(dummy_input)
+    end = time.time()
+    print((end - start) / 100)

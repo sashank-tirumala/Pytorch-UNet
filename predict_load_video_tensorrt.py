@@ -59,15 +59,18 @@ if __name__ == "__main__":
     output_pth = output_dir / (Path(args.input_folder).name + ".mp4")
     video_writer = cv2.VideoWriter(str(output_pth), cv2.VideoWriter_fourcc(*"mp4v"), 10, (height, width))
     for image_file in tqdm.tqdm(image_files):
-        img = Image.open(Path(args.input_folder) / image_file)
-        img = np.asarray(img)
-        mask = model(img)
-        img = model.preprocess(img)
-        img = img.transpose((1, 2, 0))
-        img = img * 255
-        img = img.astype(np.uint8)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        img = plot_img_and_mask(img, mask[0, :, :], returns_img=True)
-        video_writer.write(img)
+        try:
+            img = Image.open(Path(args.input_folder) / image_file)
+            img = np.asarray(img)
+            mask = model(img)
+            img = model.preprocess(img)
+            img = img.transpose((1, 2, 0))
+            img = img * 255
+            img = img.astype(np.uint8)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            img = plot_img_and_mask(img, mask[0, :, :], returns_img=True)
+            video_writer.write(img)
+        except:
+            print("Error processing image: {}".format(image_file))
     video_writer.release()
     model.trt_model.cuda_ctx.pop()
